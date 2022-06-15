@@ -1,0 +1,190 @@
+@startuml
+    class EventoController <<Controller>> {
+        + EventoController()
+        + adicionarEvento(evento: Evento)
+        + executar()
+    }
+
+
+    class MainController <<Controller>> {
+        + MainController()
+        + executar()
+        + gerenciarEvento()
+        + gerenciarPercurso()
+    }
+
+    class PercursoController <<Controller>> {
+        + PercursoController()
+        + calcularPercurso(): List<Endereco>
+        + executar()
+        + onMapaUpdate()
+        + setDestino(coordenada: Coordenada)
+        + setOrigem(coordenada: Coordenada)
+        + setTipoPercurso(tipoPercurso: TipoPercurso)
+    }
+
+        class MapaDAO <<DAO>>{
+            + carregarMapa() : Mapa
+        }
+
+
+    class Coordenada {
+        - mLatitude : double
+        - mLongitude : double
+        + Coordenada(latitude:double, longitude:double)
+        + Coordenada()
+        + getLatitude():double
+        + getLongitude():double
+    }
+
+    class Endereco {
+        - mLogradouro : String
+        - mNumeroMax : int
+        - mNumeroMin : int
+        + Endereco()
+        + getCoordFim(): Coordenada
+        + getCoordInicio():Coordenada
+        + getLogradouro():String
+        + getNumeroMax():int
+        + getNumeroMin():int
+        + getSeguranca():TipoSeguranca
+        + setSeguranca(tipoSeguranca: TipoSeguranca)
+    }
+
+    abstract class Evento {
+        + Evento(coordenada: Coordenada, tipoSeguranca: TipoSeguranca)
+        + getCoordenada(): Coordenada
+        + getSeguranca(): TipoSeguranca
+    }
+
+    class EventoAssalto {
+        + EventoAssalto(tipoSeguranca: TipoSeguranca)
+    }
+
+    class EventoRoubo {
+        + EventoRoubo(tipoSeguranca: TipoSeguranca)
+    }
+
+    class EventoTiroteio {
+        + EventoTiroteio(tipoSeguranca: TipoSeguranca)
+    }
+
+    class Mapa {
+        - mGrafo : Map<Coordenada, List<Endereco>>
+        + Mapa()
+        + adicionarEndereco(endereco:Endereco)
+        + atualizarEndereco(coordenada:Coordenada, tipoSeguranca: TipoSeguranca)
+        + registrarObservador(observador: MapaObserver)
+        - addAresta(coordenada:Coordenada, endereco:Endereco)
+        - notificarObservadores()
+    }
+
+    enum TipoPercurso {
+      CURTO
+      NORMAL
+      SEGURO
+    }
+
+    enum TipoSeguranca {
+      PERIGO_ALTO
+      PERIGO_MEDIO
+      SEGURANCA_ALTA
+      SEGURANCA_BAIXA
+      SEGURANCA_MEDIA
+    }
+
+    interface MapaObserver <<Observer>>{
+        {abstract} + onMapaUpdate()
+    }
+
+    class MapaSingleton <<Singleton>> {
+        {static} - sMapa : Mapa
+        {static} + getInstance(): Mapa
+        - MapaSingleton()
+    }
+
+    class PercursoCurto <<Strategy>>{
+        + calcularPercurso(origem:Coordenada, destino:Coordenada, tipoPercurso: TipoPercurso)
+    }
+
+
+    class PercursoNormal <<Strategy>> {
+        + calcularPercurso(origem:Coordenada, destino:Coordenada, tipoPercurso: TipoPercurso)
+    }
+
+
+
+    class PercursoSeguro <<Strategy>> {
+        + calcularPercurso(origem:Coordenada, destino:Coordenada, tipoPercurso: TipoPercurso)
+    }
+
+
+    interface PercursoStrategy <<Strategy>> {
+        {abstract} + calcularPercurso(origem:Coordenada, destino:Coordenada, tipoPercurso: TipoPercurso)
+
+    }
+
+        class EventoView <<View>>{
+            + EventoView()
+            + exibirTelaPrincipal()
+            - cadastrarEvento()
+        }
+
+
+        class MainView <<View>>{
+            + MainView()
+            + exibirTelaPrincipal()
+        }
+
+
+        class PercursoView <<View>>{
+            + PercursoView()
+            + exibirTelaAtualizacaoPercurso()
+            + exibirTelaPercurso()
+            + exibirTelaPrincipal()
+            - cadastrarOrigemDestino()
+        }
+
+    MainController -- PercursoController : executa
+    MainController -- EventoController : executa
+    MainController -- MainView
+
+    EventoController -- EventoView
+    EventoController o-- Mapa
+    EventoController -- MapaSingleton
+    EventoController -- Evento
+
+    MapaSingleton -- MapaDAO
+    MapaDAO -- Mapa
+    Mapa -- "*" MapaObserver : notifica
+
+    EventoView -- Evento
+    EventoTiroteio --|> Evento
+    EventoRoubo --|> Evento
+    EventoAssalto --|> Evento
+
+    PercursoController -- PercursoView
+    PercursoController -- MapaSingleton
+    PercursoController o-- Mapa
+    PercursoController ..|> MapaObserver
+    PercursoController -- Coordenada
+    PercursoController o-- PercursoStrategy
+
+    PercursoStrategy -- Coordenada
+    PercursoStrategy -- Mapa
+    PercursoStrategy -- TipoPercurso
+
+    PercursoView -- TipoPercurso
+
+    PercursoNormal ..|> PercursoStrategy
+    PercursoCurto ..|> PercursoStrategy
+    PercursoSeguro ..|> PercursoStrategy
+
+    Endereco o-- TipoSeguranca
+    EventoView -- TipoSeguranca
+
+    Mapa o-- "*" Endereco
+
+
+
+@enduml
