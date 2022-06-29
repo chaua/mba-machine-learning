@@ -1,0 +1,219 @@
+@startuml
+
+  namespace model {
+    abstract class model.AbstractElevador {
+        - mAndar : int
+        + acionarServicoManutencao()
+        + avisarPassageiros()
+        + consertar()
+        + descer()
+        + parar()
+        + quebrar()
+        + subir()
+        + tocarMusica()
+    }
+  }
+
+  namespace model {
+    interface model.Elevador {
+        {abstract} + acionarServicoManutencao()
+        {abstract} + avisarPassageiros()
+        {abstract} + consertar()
+        {abstract} + descer()
+        {abstract} + parar()
+        {abstract} + quebrar()
+        {abstract} + subir()
+        {abstract} + tocarMusica()
+    }
+  }
+
+
+  namespace model {
+    class model.ElevadorCarga {
+        + ElevadorCarga()
+    }
+  }
+
+
+  namespace model {
+    class model.ElevadorPanoramico {
+        + ElevadorPanoramico()
+    }
+  }
+
+
+  namespace model {
+    class model.ElevadorPassageiros {
+        + ElevadorPassageiros()
+    }
+  }
+
+
+  model.AbstractElevador .up.|> model.Elevador
+  model.AbstractElevador o-- state.ElevadorContext 
+  model.ElevadorCarga -up-|> model.AbstractElevador
+  model.ElevadorPanoramico -up-|> model.AbstractElevador
+  model.ElevadorPassageiros -up-|> model.AbstractElevador
+
+
+
+  namespace state {
+    class state.ElevadorContext {
+        + ElevadorContext()
+        + consertar()
+        + descer()
+        + getEstadoAtual()
+        + parar()
+        + quebrar()
+        + setEstadoAtual()
+        + subir()
+    }
+  }
+
+
+  namespace state {
+    interface state.ElevadorState {
+        {abstract} + consertar()
+        {abstract} + parar()
+        {abstract} + pressionarBotaoDescer()
+        {abstract} + pressionarBotaoEmergencia()
+        {abstract} + pressionarBotaoSubir()
+    }
+  }
+
+
+  state.ElevadorContext -up-|> observer.ElevadorSubject
+  state.ElevadorContext o-- state.ElevadorState
+
+  namespace state {
+      class state.ElevadorDescendoState <<Singleton>> {
+          {static} - sInstance : ElevadorDescendoState
+          + consertar()
+          {static} + getInstance()
+          + parar()
+          + pressionarBotaoDescer()
+          + pressionarBotaoEmergencia()
+          + pressionarBotaoSubir()
+          - ElevadorDescendoState()
+    }
+  }
+
+
+  namespace state {
+      class state.ElevadorEmEmergenciaState  <<Singleton>>{
+          {static} - sInstance : ElevadorEmEmergenciaState
+          + consertar()
+          {static} + getInstance()
+          + parar()
+          + pressionarBotaoDescer()
+          + pressionarBotaoEmergencia()
+          + pressionarBotaoSubir()
+          - ElevadorEmEmergenciaState()
+    }
+  }
+
+
+  namespace state {
+      class state.ElevadorEmManutencaoState <<Singleton>> {
+          {static} - sInstance : ElevadorEmManutencaoState
+          + consertar()
+          {static} + getInstance()
+          + parar()
+          + pressionarBotaoDescer()
+          + pressionarBotaoEmergencia()
+          + pressionarBotaoSubir()
+          - ElevadorEmManutencaoState()
+    }
+  }
+
+
+  namespace state {
+      class state.ElevadorParadoState <<Singleton>> {
+          {static} - sInstance : ElevadorParadoState
+          + consertar()
+          {static} + getInstance()
+          + parar()
+          + pressionarBotaoDescer()
+          + pressionarBotaoEmergencia()
+          + pressionarBotaoSubir()
+          - ElevadorParadoState()
+    }
+  }
+
+
+  namespace state {
+      class state.ElevadorSubindoState <<Singleton>> {
+          {static} - sInstance : ElevadorSubindoState
+          + consertar()
+          {static} + getInstance()
+          + parar()
+          + pressionarBotaoDescer()
+          + pressionarBotaoEmergencia()
+          + pressionarBotaoSubir()
+          - ElevadorSubindoState()
+    }
+  }
+
+
+  state.ElevadorDescendoState .up.|> state.ElevadorState
+  state.ElevadorEmEmergenciaState .up.|> state.ElevadorState
+  state.ElevadorEmManutencaoState .up.|> state.ElevadorState
+  state.ElevadorParadoState .up.|> state.ElevadorState
+  state.ElevadorSubindoState .up.|> state.ElevadorState
+
+
+  namespace observer {
+    interface observer.ElevadorObserver {
+        {abstract} + atualizarEstado()
+        {abstract} + getEstado()
+    }
+  }
+
+
+  namespace observer {
+    abstract class observer.ElevadorSubject {
+        + adicionar()
+        + remover()
+        # notificar()
+    }
+  }
+
+
+  namespace observer {
+      class observer.OnEmergenciaObserver {
+          + OnEmergenciaObserver()
+          + atualizarEstado()
+          + getEstado()
+    }
+  }
+
+
+  namespace observer {
+      class observer.OnManutencaoObserver {
+          + OnManutencaoObserver()
+          + atualizarEstado()
+          + getEstado()
+    }
+  }
+
+
+  namespace observer {
+      class observer.OnParandoObserver {
+          + OnParandoObserver()
+          + atualizarEstado()
+          + getEstado()
+    }
+  }
+
+  observer.ElevadorSubject  -- "*" observer.ElevadorObserver
+  observer.OnEmergenciaObserver .up.|> observer.ElevadorObserver
+  observer.OnEmergenciaObserver o-- model.Elevador
+  observer.OnManutencaoObserver .up.|> observer.ElevadorObserver
+  observer.OnManutencaoObserver o-- model.Elevador
+  observer.OnParandoObserver .up.|> observer.ElevadorObserver
+  observer.OnParandoObserver o-- model.Elevador
+
+
+
+
+@enduml
