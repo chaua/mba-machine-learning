@@ -1,0 +1,143 @@
+version: '3'
+
+services:
+  scylla-1:
+    image: scylladb/scylla
+    container_name: scylla-1
+    networks:
+      - transactions
+    ports:
+      - 9042:9042
+
+  scylla-2:
+    image: scylladb/scylla
+    container_name: scylla-2
+    command: --seeds=scylla-1,scylla-3
+    networks:
+      - transactions
+    ports:
+      - 9043:9042
+
+  scylla-3:
+    image: scylladb/scylla
+    container_name: scylla-3
+    command: --seeds=scylla-1,scylla-2
+    networks:
+      - transactions
+    ports:
+      - 9044:9042
+
+  redis:
+    image: redis:4
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - transactions
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    networks:
+      - transactions
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    networks:
+      - transactions
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  envoy:
+    image: envoyproxy/envoy:v1.15.0
+    container_name: envoy
+    networks:
+      - transactions
+    command: -l error --config-path /etc/envoy/envoy.yaml
+    volumes:
+      - ./envoy-config.yaml:/etc/envoy/envoy.yaml:ro
+
+  bff:
+    image: felipemocruha/sistemas-distribuidos-bff:aula-1
+    container_name: bff
+    networks:
+      - transactions
+    depends_on:
+      - kafka
+      - redis
+    ports:
+      - 5001:5001
+    environment:
+      KAFKA_HOSTS: kafka:9092
+      REDIS_HOST: redis
+      FAILURE_RATE: 0.2
+
+  transactions:
+    image: felipemocruha/sistemas-distribuidos-transactions:aula-1
+    container_name: transactions
+    depends_on:
+      - bff
+      - kafka
+      - scylla-1
+      - scylla-2
+      - scylla-3
+    networks:
+      - transactions
+    ports:
+      - 5002:5002
+    environment:
+      CASSANDRA_HOSTS: scylla-1,scylla-2,scylla-3
+      KAFKA_HOSTS: kafka:9092
+      ANTIFRAUD_HOST: envoy:5005
+      BFF_HOST: http://bff:5001
+
+  antifraud-1:
+    image: felipemocruha/sistemas-distribuidos-antifraud:aula-1
+    container_name: antifraud-1
+    networks:
+      - transactions
+    ports:
+      - 5004:5004
+    environment:
+      APPROVED_THRESHOLD: 0.7
+      SERVER_HOST: 0.0.0.0:5004
+
+  antifraud-2:
+    image: felipemocruha/sistemas-distribuidos-antifraud:aula-1
+    container_name: antifraud-2
+    networks:
+      - transactions
+    ports:
+      - 5003:5003
+    environment:
+      APPROVED_THRESHOLD: 0.4
+      SERVER_HOST: 0.0.0.0:5003
+
+  generator:
+    image: felipemocruha/sistemas-distribuidos-generator:aula-1
+    container_name: generator
+    networks:
+      - transactions
+    environment:
+      REQUEST_INTERVAL: 3
+      BFF_HOST: bff:5001
+
+
+networks:
+  transactions:
+    driver: bridge
